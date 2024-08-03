@@ -2,7 +2,6 @@ import streamlit as st
 import fitz  # PyMuPDF
 import cv2
 import numpy as np
-import os
 from PyPDF2 import PdfReader, PdfWriter
 from io import BytesIO
 
@@ -40,9 +39,9 @@ def process_pdf(pdf_bytes, qr_content):
     
     return results
 
-def divider(file_bytes, divisoes, output_folder):
+def divider(file_bytes, divisoes):
     pdf_reader = PdfReader(file_bytes)
-    pdf_nomes_saida = [] 
+    pdf_nomes_saida = []
     start_page = 0
 
     for end_page in divisoes: 
@@ -51,12 +50,11 @@ def divider(file_bytes, divisoes, output_folder):
         for page_num in range(start_page, end_page):
             pdf_writer.add_page(pdf_reader.pages[page_num])
 
-        base_name = "output"
-        nome_arquivo_saida = os.path.join(output_folder, f"{base_name}_{start_page+1}.pdf")
-        pdf_nomes_saida.append(nome_arquivo_saida) 
-        with open(nome_arquivo_saida, 'wb') as arquivo_saida:
-            pdf_writer.write(arquivo_saida)
-
+        output = BytesIO()
+        pdf_writer.write(output)
+        output.seek(0)
+        
+        pdf_nomes_saida.append(output)
         start_page = end_page
 
     return pdf_nomes_saida
@@ -66,19 +64,19 @@ qr_content = 'VINCIEyesOn'
 st.title('PDF Divider with QR Code')
 
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
-output_folder = st.text_input("Output Folder", "")
 
 if uploaded_file:
     st.write(f"File uploaded: {uploaded_file.name}")
-
-if output_folder:
-    st.write(f"Output folder: {output_folder}")
-
-if uploaded_file and output_folder:
     pdf_bytes = BytesIO(uploaded_file.read())
     divisoes = process_pdf(pdf_bytes, qr_content)
     pdf_bytes.seek(0)  # Reset stream position after reading
-    pdfs = divider(pdf_bytes, divisoes, output_folder)
-    st.write("PDFs divididos e salvos com sucesso!")
-    for pdf in pdfs:
-        st.write(pdf)
+    pdfs = divider(pdf_bytes, divisoes)
+    st.write("PDFs divididos e prontos para download!")
+    
+    for i, pdf in enumerate(pdfs):
+        st.download_button(
+            label=f"Download PDF {i+1}",
+            data=pdf,
+            file_name=f"output_{i+1}.pdf",
+            mime="application/pdf"
+        )
