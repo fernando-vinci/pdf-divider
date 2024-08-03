@@ -1,7 +1,6 @@
 import streamlit as st
 import fitz  # PyMuPDF
 import cv2
-from pyzbar.pyzbar import decode
 import numpy as np
 import os
 from PyPDF2 import PdfReader, PdfWriter
@@ -9,20 +8,13 @@ from io import BytesIO
 
 def read_qr(image, qr_content):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred_image = cv2.GaussianBlur(gray_image, (7, 7), 0)
+    detector = cv2.QRCodeDetector()
+    data, points, _ = detector.detectAndDecode(gray_image)
     
-    qr_codes = decode(blurred_image)
-    found_pages = []
-
-    if qr_codes:
-        for qr_code in qr_codes:
-            qr_data = qr_code.data.decode('utf-8')
-            if qr_data == qr_content:
-                found_pages.append(True)
-            else:
-                found_pages.append(False)
-    
-    return found_pages
+    if data == qr_content:
+        return True
+    else:
+        return False
 
 def process_pdf(pdf_bytes, qr_content):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -34,13 +26,12 @@ def process_pdf(pdf_bytes, qr_content):
         
         try:
             img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-            found_pages = read_qr(img_np, qr_content)
+            found = read_qr(img_np, qr_content)
+            if found:
+                results.append(page_num + 1)
         except Exception as e:
             st.write(f"Erro ao processar a página {page_num + 1}: {e}")
             continue
-        
-        if any(found_pages):
-            results.append(page_num + 1)
 
     if doc.page_count not in results:
         results.append(doc.page_count)
