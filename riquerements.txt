@@ -1,6 +1,5 @@
 streamlit
-PyMuPDF
-fitz
+PyMuPDF==1.23.26
 opencv-python-headless
 pyzbar
 PyPDF2
