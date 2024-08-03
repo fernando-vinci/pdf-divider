@@ -1,5 +1,5 @@
 streamlit
-PyMuPDF==1.23.26
+PyMuPDF
 opencv-python-headless
 pyzbar
 PyPDF2
